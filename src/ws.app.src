@@ -1,0 +1,22 @@
+{
+	application,
+	ws,
+	[
+		{description, "A stupid simple webserver"},
+		{vsn, "0.1.0"},
+		{registered, []},
+		{mod, {ws_app, []}},
+		{applications,
+			[
+				kernel,
+				stdlib
+			]
+		},
+		{env, []},
+		{modules, []},
+
+		{maintainers, []},
+		{licenses, ["MIT"]},
+		{links, []}
+	]
+}.
