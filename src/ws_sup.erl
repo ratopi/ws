@@ -41,7 +41,7 @@ init([]) ->
 		]
 	),
 	ws_log:info("listening..."),
-	spawn_link(fun() -> start_childs(10) end),
+	spawn_link(fun() -> start_childs(ws_config:get(listener_count)) end),
 	X = {
 		ok,
 		{
@@ -69,7 +69,7 @@ start_childs(0) ->
 	ok;
 
 start_childs(N) ->
-	ws_log:info("start_child()"),
+	% ws_log:info("start_child()"),
 	R = supervisor:start_child(?SERVER, []),
-	ws_log:info("R = ~p~n", [R]),
+	% ws_log:info("New child: ~p", [R]),
 	start_childs(N - 1).

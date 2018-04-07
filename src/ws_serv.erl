@@ -40,9 +40,9 @@ start_link(ListenSocket) ->
 %%%===================================================================
 
 init([ListenSocket]) ->
-	ws_log:info("cast accept"),
+	% ws_log:info("cast accept"),
 	gen_server:cast(self(), accept),
-	ws_log:info("~n~p~n~n",[#state{}]),
+	% ws_log:info("~n~p~n", [#state{}]),
 	{ok, #state{listenSocket = ListenSocket}}.
 
 
@@ -51,9 +51,9 @@ handle_call(_Request, _From, State) ->
 
 
 handle_cast(accept, State = #state{listenSocket = ListenSocket}) ->
-	ws_log:info("accepting ..."),
+	% ws_log:info("accepting ..."),
 	{ok, Port} = gen_tcp:accept(ListenSocket),
-	ws_sup:start_child(),
+	ws_sup:start_child(), % todo: new child should not be started here, but when this child dies
 	inet:setopts(Port, [{active, once}]),
 	{noreply, State#state{port = Port, phase = start}};
 
@@ -63,27 +63,28 @@ handle_cast(_Request, State) ->
 
 handle_info({tcp, Port, Data}, State = #state{phase = start, port = Port}) ->
 	[MethodText, Path, _Protcol] = Parts = re:split(Data, "[ \n\r]", [trim]),
-	ws_log:info("recv : ~p~n", [Data]),
-	ws_log:info("recv : ~p~n", [Parts]),
+	% ws_log:info("recv : ~p", [Data]),
+	% ws_log:info("recv : ~p", [Parts]),
 	Method = binary_to_atom(MethodText, utf8),
 	NewState = State#state{method = Method, path = Path, phase = header},
-	ws_log:info("NewState ~p~n", [NewState]),
+	% ws_log:info("NewState ~p", [NewState]),
 	inet:setopts(Port, [{active, once}]),
 	{noreply, NewState};
 
-handle_info({tcp, Port, "\r\n"}, State = #state{phase = header, port = Port}) ->
+handle_info({tcp, Port, "\r\n"}, State = #state{phase = header, port = Port, path = Path}) ->
 	inet:setopts(Port, [{active, once}]),
 	NewState = State#state{phase = send},
-	ws_log:info("end of header"),
-	ws_log:info("NewState ~p~n", [NewState]),
-	{noreply, NewState};
+	% ws_log:info("end of header"),
+	send_data(Port, Path),
+	% ws_log:info("NewState ~p", [NewState]),
+	{stop, normal, NewState};
 
 handle_info({tcp, Port, Data}, State = #state{phase = header, port = Port}) ->
-	ws_log:info("header : ~p~n", [re:replace(Data, "\n\r", "")]),
-	ws_log:info("header : ~p~n", [string:split(Data, ": ")]),
+	% ws_log:info("header : ~p", [re:replace(Data, "\n\r", "")]),
+	% ws_log:info("header : ~p", [string:split(Data, ": ")]),
 	inet:setopts(Port, [{active, once}]),
 	NewState = State,
-	ws_log:info("NewState ~p~n", [NewState]),
+	% ws_log:info("NewState ~p", [NewState]),
 	{noreply, NewState};
 
 handle_info(_Info, State) ->
@@ -100,3 +101,9 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+send_data(Port, Path) ->
+	ws_log:info("Requested path ~p", [Path]),
+	inet:send(Port, "Request path was:\r\n"),
+	inet:send(Port, Path),
+	inet:close(Port).
