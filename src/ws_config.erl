@@ -4,16 +4,28 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created : 06. Apr 2018 23:11
+%%% Created : 07. Apr 2018 13:40
 %%%-------------------------------------------------------------------
--module(ws_log).
+-module(ws_config).
 -author("Ralf Th. Pietsch <ratopi@abwesend.de>").
 
 %% API
--export([info/1, info/2]).
+-export([get/1]).
 
-info(Message) ->
-	io:fwrite("[~p] : " ++ Message ++ "~n", [self()]).
 
-info(Message, Args) ->
-	io:fwrite("[~p] : " ++ Message ++ "~n", [self() | Args]).
+get(Key) ->
+	getValue(application:get_env(Key), default(Key)).
+
+
+default(port) -> 8080;
+default(listener_count) -> 20;
+
+default(_) -> undefined.
+
+
+
+getValue(undefined, Default) ->
+	Default;
+
+getValue(Value, _Default) ->
+	Value.

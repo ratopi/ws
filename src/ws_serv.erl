@@ -26,14 +26,14 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {socket, phase, method, path, headers = []}).
+-record(state, {listenSocket, port, phase, method, path, headers = []}).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
 start_link(ListenSocket) ->
-	gen_server:start_link({local, ?SERVER}, ?MODULE, [ListenSocket], []).
+	gen_server:start_link(?MODULE, [ListenSocket], []).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -42,45 +42,46 @@ start_link(ListenSocket) ->
 init([ListenSocket]) ->
 	ws_log:info("cast accept"),
 	gen_server:cast(self(), accept),
-	{ok, #state{socket = ListenSocket}}.
+	ws_log:info("~n~p~n~n",[#state{}]),
+	{ok, #state{listenSocket = ListenSocket}}.
 
 
 handle_call(_Request, _From, State) ->
 	{noreply, State}.
 
 
-handle_cast(accept, State = #state{socket = ListenSocket}) ->
+handle_cast(accept, State = #state{listenSocket = ListenSocket}) ->
 	ws_log:info("accepting ..."),
-	{ok, AcceptSocket} = gen_tcp:accept(ListenSocket),
+	{ok, Port} = gen_tcp:accept(ListenSocket),
 	ws_sup:start_child(),
-	inet:setopts(AcceptSocket, [{active, once}]),
-	{noreply, State#state{socket = AcceptSocket, phase = start}};
+	inet:setopts(Port, [{active, once}]),
+	{noreply, State#state{port = Port, phase = start}};
 
 handle_cast(_Request, State) ->
 	{noreply, State}.
 
 
-handle_info({tcp, _Port, Data}, State = #state{phase = start, socket = AcceptSocket}) ->
+handle_info({tcp, Port, Data}, State = #state{phase = start, port = Port}) ->
 	[MethodText, Path, _Protcol] = Parts = re:split(Data, "[ \n\r]", [trim]),
 	ws_log:info("recv : ~p~n", [Data]),
 	ws_log:info("recv : ~p~n", [Parts]),
 	Method = binary_to_atom(MethodText, utf8),
 	NewState = State#state{method = Method, path = Path, phase = header},
 	ws_log:info("NewState ~p~n", [NewState]),
-	inet:setopts(AcceptSocket, [{active, once}]),
+	inet:setopts(Port, [{active, once}]),
 	{noreply, NewState};
 
-handle_info({tcp, _Port, "\r\n"}, State = #state{phase = header, socket = AcceptSocket}) ->
-	inet:setopts(AcceptSocket, [{active, once}]),
+handle_info({tcp, Port, "\r\n"}, State = #state{phase = header, port = Port}) ->
+	inet:setopts(Port, [{active, once}]),
 	NewState = State#state{phase = send},
 	ws_log:info("end of header"),
 	ws_log:info("NewState ~p~n", [NewState]),
 	{noreply, NewState};
 
-handle_info({tcp, _Port, Data}, State = #state{phase = header, socket = AcceptSocket}) ->
+handle_info({tcp, Port, Data}, State = #state{phase = header, port = Port}) ->
 	ws_log:info("header : ~p~n", [re:replace(Data, "\n\r", "")]),
 	ws_log:info("header : ~p~n", [string:split(Data, ": ")]),
-	inet:setopts(AcceptSocket, [{active, once}]),
+	inet:setopts(Port, [{active, once}]),
 	NewState = State,
 	ws_log:info("NewState ~p~n", [NewState]),
 	{noreply, NewState};

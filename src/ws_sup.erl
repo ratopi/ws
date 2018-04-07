@@ -23,6 +23,9 @@
 start_link() ->
 	supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
+start_child() ->
+	start_childs(1).
+
 %%====================================================================
 %% Supervisor callbacks
 %%====================================================================
@@ -30,7 +33,7 @@ start_link() ->
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
 	{ok, ListenSocket} = gen_tcp:listen(
-		18080,
+		ws_config:get(port),
 		[
 			% binary,
 			{packet, line},
@@ -38,7 +41,7 @@ init([]) ->
 		]
 	),
 	ws_log:info("listening..."),
-	spawn_link(fun start_child/0),
+	spawn_link(fun() -> start_childs(10) end),
 	X = {
 		ok,
 		{
@@ -62,7 +65,11 @@ init([]) ->
 %% Internal functions
 %%====================================================================
 
-start_child() ->
+start_childs(0) ->
+	ok;
+
+start_childs(N) ->
 	ws_log:info("start_child()"),
 	R = supervisor:start_child(?SERVER, []),
-	ws_log:info("R = ~p~n", [R]).
+	ws_log:info("R = ~p~n", [R]),
+	start_childs(N - 1).
