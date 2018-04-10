@@ -51,9 +51,8 @@ handle_call(_Request, _From, State) ->
 
 
 handle_cast(accept, State = #state{listenSocket = ListenSocket}) ->
-	% ws_log:info("accepting ..."),
+	ws_log:info("accepting ..."),
 	{ok, Port} = gen_tcp:accept(ListenSocket),
-	ws_sup:start_child(), % todo: new child should not be started here, but when this child dies
 	inet:setopts(Port, [{active, once}]),
 	{noreply, State#state{port = Port, phase = start}};
 
@@ -73,11 +72,14 @@ handle_info({tcp, Port, Data}, State = #state{phase = start, port = Port}) ->
 
 handle_info({tcp, Port, "\r\n"}, State = #state{phase = header, port = Port, path = Path}) ->
 	inet:setopts(Port, [{active, once}]),
-	NewState = State#state{phase = send},
 	% ws_log:info("end of header"),
 	send_data(Port, Path),
+	inet:close(Port),
+	ws_log:info("closed"),
+	gen_server:cast(self(), accept),
+	NewState = State#state{phase = accept, port = undefined},
 	% ws_log:info("NewState ~p", [NewState]),
-	{stop, normal, NewState};
+	{noreply, NewState};
 
 handle_info({tcp, Port, Data}, State = #state{phase = header, port = Port}) ->
 	% ws_log:info("header : ~p", [re:replace(Data, "\n\r", "")]),
