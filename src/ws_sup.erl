@@ -70,6 +70,7 @@ start_childs(0) ->
 
 start_childs(N) ->
 	% ws_log:info("start_child()"),
-	R = supervisor:start_child(?SERVER, []),
+	% ws_log:info("start_child(~p)", [N]),
+	R = {ok, Pid} = supervisor:start_child(?SERVER, [N]),
 	% ws_log:info("New child: ~p", [R]),
 	start_childs(N - 1).
