@@ -24,7 +24,7 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {supervisor}).
+-record(state, {child_starter_fun}).
 
 %%%===================================================================
 %%% API
@@ -38,8 +38,8 @@
 %%--------------------------------------------------------------------
 -spec(start_link(Sup :: pid()) ->
 	{ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
-start_link(Sup) ->
-	gen_server:start_link({local, ?SERVER}, ?MODULE, Sup, []).
+start_link(ChildStarterFun) ->
+	gen_server:start_link({local, ?SERVER}, ?MODULE, ChildStarterFun, []).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -59,10 +59,10 @@ start_link(Sup) ->
 -spec(init(Args :: term()) ->
 	{ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
 	{stop, Reason :: term()} | ignore).
-init(Sup) ->
-	io:fwrite("Sup : ~p~n", [Sup]),
+init(ChildStarterFun) ->
+	io:fwrite("ChildStarterFun : ~p~n", [ChildStarterFun]),
 	gen_server:cast(self(), start_childs),
-	{ok, #state{supervisor = Sup}}.
+	{ok, #state{child_starter_fun = ChildStarterFun}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -93,11 +93,11 @@ handle_call(_Request, _From, State) ->
 	{noreply, NewState :: #state{}} |
 	{noreply, NewState :: #state{}, timeout() | hibernate} |
 	{stop, Reason :: term(), NewState :: #state{}}).
-handle_cast(start_childs, State = #state{supervisor = Sup}) ->
-	start_childs(Sup, ws_config:get(listener_count)),
+handle_cast(start_childs, State = #state{child_starter_fun = ChildStarterFun}) ->
+	start_childs(ChildStarterFun, ws_config:get(listener_count)),
 	{noreply, State};
 
-handle_cast(_Request, State = #state{supervisor = Sup}) ->
+handle_cast(_Request, State) ->
 	{noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -151,12 +151,12 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
-start_childs(_Sup, 0) ->
+start_childs(_ChildStarterFun, 0) ->
 	ok;
 
-start_childs(Sup, N) ->
+start_childs(ChildStarterFun, N) ->
 	% ws_log:info("start_child()"),
 	% ws_log:info("start_child(~p)", [N]),
-	C = ws_sup:start_child(Sup, N),
+	C = ChildStarterFun(N),
 	io:fwrite("C ~p~n", [C]),
-	start_childs(Sup, N - 1).
+	start_childs(ChildStarterFun, N - 1).

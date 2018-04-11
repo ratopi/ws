@@ -13,7 +13,6 @@
 
 %% API
 -export([start_link/0]).
--export([start_child/2]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -69,13 +68,14 @@ init([]) ->
 	SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
 
 	MyPid = self(),
+	ChildStarterFun = fun(Id) -> start_child(MyPid, Id) end,
 
 	{
 		ok,
 		{
 			SupFlags,
 			[
-				{ws_serv_ctrl, {ws_serv_ctrl, start_link, [MyPid]}, permanent, 2000, worker, [ws_serv_ctrl]},
+				{ws_serv_ctrl, {ws_serv_ctrl, start_link, [ChildStarterFun]}, permanent, 2000, worker, [ws_serv_ctrl]},
 				{ws_serv_sup, {ws_serv_sup, start_link, []}, permanent, 2000, supervisor, [ws_serv_sup]}
 			]
 		}
