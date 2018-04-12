@@ -53,11 +53,11 @@ init([]) ->
 			[
 				{
 					socket,
-					{ws_serv, start_link, [ListenSocket]},
+					{ws_serv_worker, start_link, [ListenSocket]},
 					temporary,
 					1000,
 					worker,
-					[ws_serv]
+					[ws_serv_worker]
 				}
 			]
 		}

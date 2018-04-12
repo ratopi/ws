@@ -6,7 +6,7 @@
 %%% @end
 %%% Created : 06. Apr 2018 22:11
 %%%-------------------------------------------------------------------
--module(ws_serv).
+-module(ws_serv_worker).
 -author("Ralf Th. Pietsch <ratopi@abwesend.de>").
 
 -behaviour(gen_server).
