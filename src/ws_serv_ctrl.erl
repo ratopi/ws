@@ -39,7 +39,7 @@
 -spec(start_link(Sup :: pid()) ->
 	{ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link(ChildStarterFun) ->
-	gen_server:start_link({local, ?SERVER}, ?MODULE, ChildStarterFun, []).
+	gen_server:start_link(?MODULE, ChildStarterFun, []).
 
 %%%===================================================================
 %%% gen_server callbacks

@@ -12,7 +12,7 @@
 
 %% Supervisor callbacks
 -export([init/1]).
--export([start_a_child/1]).
+-export([start_a_child/2]).
 
 -define(SERVER, ?MODULE).
 
@@ -21,12 +21,12 @@
 %%====================================================================
 
 start_link() ->
-	supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+	supervisor:start_link(?MODULE, []).
 
-start_a_child(Id) ->
+start_a_child(Sup, Id) ->
 	% ws_log:info("start_child()"),
 	% ws_log:info("start_child(~p)", [N]),
-	R = {ok, Pid} = supervisor:start_child(?SERVER, [Id]),
+	R = {ok, Pid} = supervisor:start_child(Sup, [Id]),
 	% ws_log:info("New child: ~p", [R]),
 	Pid.
 

@@ -32,12 +32,8 @@
 -spec(start_link() ->
 	{ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link() ->
-	supervisor:start_link({local, ?SERVER}, ?MODULE, []).
-
-start_child(Sup, Id) ->
-	Pid = get_child_pid(Sup, ws_serv_sup),
-	% io:fwrite("PID ~p~n", [Pid]),
-	ws_serv_sup:start_a_child(Id).
+	% supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+	supervisor:start_link(?MODULE, []).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -68,7 +64,7 @@ init([]) ->
 	SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
 
 	MyPid = self(),
-	ChildStarterFun = fun(Id) -> start_child(MyPid, Id) end,
+	ChildStarterFun = fun(Id) -> start_server_child(MyPid, ws_serv_sup, Id) end,
 
 	{
 		ok,
@@ -85,6 +81,12 @@ init([]) ->
 %%% Internal functions
 %%%===================================================================
 
+start_server_child(MyPid, ServerSupervisorId, ServerId) ->
+	{ok, Pid} = get_child_pid(MyPid, ServerSupervisorId),
+	% io:fwrite("PID ~p~n", [Pid]),
+	ws_serv_sup:start_a_child(Pid, ServerId).
+
+
 get_child_pid([], _ChildId) ->
 	{error, not_found};
 
@@ -94,7 +96,7 @@ get_child_pid([{ChildId, Pid, _Type, _} | T], ChildId) ->
 get_child_pid([_ | T], ChildId) ->
 	get_child_pid(T, ChildId);
 
-get_child_pid(Sup, ChildId) ->
+get_child_pid(Sup, ChildId) when is_pid(Sup) ->
 	Childs = supervisor:which_children(Sup),
 	% io:fwrite("Childs:~n~p~n", [Childs]),
 	get_child_pid(Childs, ChildId).
