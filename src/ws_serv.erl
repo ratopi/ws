@@ -24,7 +24,7 @@
 	code_change/3
 ]).
 
--define(SERVER, ?MODULE).
+% -define(SERVER, ?MODULE).
 
 -record(state, {n, listenSocket, port, phase, method, path, headers = []}).
 

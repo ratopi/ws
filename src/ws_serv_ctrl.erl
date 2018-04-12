@@ -22,7 +22,7 @@
 	terminate/2,
 	code_change/3]).
 
--define(SERVER, ?MODULE).
+% -define(SERVER, ?MODULE).
 
 -record(state, {child_starter_fun}).
 

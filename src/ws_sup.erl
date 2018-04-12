@@ -17,7 +17,7 @@
 %% Supervisor callbacks
 -export([init/1]).
 
--define(SERVER, ?MODULE).
+% -define(SERVER, ?MODULE).
 
 %%%===================================================================
 %%% API functions

@@ -14,7 +14,7 @@
 -export([init/1]).
 -export([start_a_child/2]).
 
--define(SERVER, ?MODULE).
+% -define(SERVER, ?MODULE).
 
 %%====================================================================
 %% API functions
