@@ -62,7 +62,6 @@ start_link(ChildStarterFun) ->
 	{ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
 	{stop, Reason :: term()} | ignore).
 init(ChildStarterFun) ->
-	io:fwrite("ChildStarterFun : ~p~n", [ChildStarterFun]),
 	gen_server:cast(self(), start_childs),
 	{ok, #state{child_starter_fun = ChildStarterFun}}.
 
@@ -157,8 +156,5 @@ start_childs(_ChildStarterFun, 0) ->
 	ok;
 
 start_childs(ChildStarterFun, N) ->
-	?LOG_DEBUG("start_child()"),
-	?LOG_DEBUG("start_child(~p)", [N]),
-	C = ChildStarterFun(N),
-	io:fwrite("C ~p~n", [C]),
+	ChildStarterFun(N),
 	start_childs(ChildStarterFun, N - 1).

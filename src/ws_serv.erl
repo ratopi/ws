@@ -66,7 +66,7 @@ init([]) ->
 	SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
 
 	MyPid = self(),
-	ChildStarterFun = fun(Id) -> start_server_child(MyPid, ws_serv_sup, Id) end,
+	ChildStarterFun = fun(ChildId) -> start_server_child(MyPid, ChildId) end,
 
 	{
 		ok,
@@ -87,11 +87,12 @@ child_def(Module, Type, Args) ->
 	{Module, {Module, start_link, Args}, permanent, 2000, Type, [Module]}.
 
 
-start_server_child(MyPid, ServerSupervisorId, ServerId) ->
-	{ok, Pid} = get_child_pid(MyPid, ServerSupervisorId),
-	% io:fwrite("PID ~p~n", [Pid]),
+start_server_child(MyPid, ServerId) ->
+	{ok, Pid} = get_child_pid(MyPid, ws_serv_sup),
 	ws_serv_sup:start_a_child(Pid, ServerId).
 
+
+% find a child by the given id
 
 get_child_pid([], _ChildId) ->
 	{error, not_found};
@@ -104,5 +105,4 @@ get_child_pid([_ | T], ChildId) ->
 
 get_child_pid(Sup, ChildId) when is_pid(Sup) ->
 	Childs = supervisor:which_children(Sup),
-	% io:fwrite("Childs:~n~p~n", [Childs]),
 	get_child_pid(Childs, ChildId).

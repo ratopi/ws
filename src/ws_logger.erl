@@ -12,7 +12,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0]).
+-export([start_link/1]).
 -export([log/5]).
 
 %% gen_server callbacks
@@ -25,7 +25,7 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {}).
+-record(state, {debug = true, info = true, warning = true, error = true}).
 
 %%%===================================================================
 %%% API
@@ -37,14 +37,18 @@
 %%
 %% @end
 %%--------------------------------------------------------------------
--spec(start_link() ->
+-spec(start_link(Level :: term()) ->
 	{ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
-start_link() ->
-	gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+start_link(Level) ->
+	gen_server:start_link({local, ?SERVER}, ?MODULE, Level, []).
 
 
 log(Level, Module, Pid, Message, Arguments) ->
 	gen_server:cast(?SERVER, {log, Level, Module, Pid, Message, Arguments}).
+
+
+set_log_level(Level) ->
+	gen_server:cast(?SERVER, {set_log_level, Level}).
 
 
 %%%===================================================================
@@ -65,7 +69,8 @@ log(Level, Module, Pid, Message, Arguments) ->
 -spec(init(Args :: term()) ->
 	{ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
 	{stop, Reason :: term()} | ignore).
-init([]) ->
+init(Level) ->
+	set_log_level(Level),
 	{ok, #state{}}.
 
 %%--------------------------------------------------------------------
@@ -99,15 +104,45 @@ handle_call(_Request, _From, State) ->
 	{stop, Reason :: term(), NewState :: #state{}}).
 
 
-handle_cast({log, Level, Module, Pid, Message, Arguments}, State) ->
-	io:fwrite("~p [~p ~p] ", [Level, Module, Pid]),
-	io:fwrite(Message, Arguments),
-	io:fwrite("~n"),
+handle_cast(Msg = {log, debug, _Module, _Pid, _Message, _Arguments}, State = #state{debug = true}) ->
+	do_log(Msg),
+	{noreply, State};
+
+handle_cast(Msg = {log, info, _Module, _Pid, _Message, _Arguments}, State = #state{info = true}) ->
+	do_log(Msg),
+	{noreply, State};
+
+handle_cast(Msg = {log, warning, _Module, _Pid, _Message, _Arguments}, State = #state{warning = true}) ->
+	do_log(Msg),
+	{noreply, State};
+
+handle_cast(Msg = {log, debug, _Module, _Pid, _Message, _Arguments}, State = #state{debug = true}) ->
+	do_log(Msg),
 	{noreply, State};
 
 
+handle_cast({set_log_level, debug}, State) ->
+	gen_server:cast(?SERVER, print_state),
+	{noreply, State#state{debug = true, info = true, warning = true, error = true}};
+
+handle_cast({set_log_level, info}, State) ->
+	gen_server:cast(?SERVER, print_state),
+	{noreply, State#state{debug = false, info = true, warning = true, error = true}};
+
+handle_cast({set_log_level, warning}, State) ->
+	gen_server:cast(?SERVER, print_state),
+	{noreply, State#state{debug = false, info = false, warning = true, error = true}};
+
+handle_cast({set_log_level, error}, State) ->
+	gen_server:cast(?SERVER, print_state),
+	{noreply, State#state{debug = false, info = false, warning = false, error = true}};
+
+
+handle_cast(print_state, State) ->
+	io:fwrite("### ~p ~p~n", [?MODULE, State]),
+	{noreply, State};
+
 handle_cast(Request, State) ->
-	io:fwrite("???? ~p~n", [Request]),
 	{noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -160,3 +195,8 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+do_log({log, Level, Module, Pid, Message, Arguments}) ->
+	io:fwrite("~p [~p ~p] ", [Level, Module, Pid]),
+	io:fwrite(Message, Arguments),
+	io:fwrite("~n").

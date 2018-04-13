@@ -61,7 +61,7 @@ init([]) ->
 		{
 			{one_for_one, 1000, 3600},
 			[
-				child_def(ws_logger, worker, []),
+				child_def(ws_logger, worker, [info]),
 				child_def(ws_serv, supervisor, [])
 			]
 		}

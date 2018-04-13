@@ -26,10 +26,8 @@ start_link() ->
 	supervisor:start_link(?MODULE, []).
 
 start_a_child(Sup, Id) ->
-	?LOG_DEBUG("start_child()"),
-	?LOG_DEBUG("start_child(~p)", [Id]),
-	R = {ok, Pid} = supervisor:start_child(Sup, [Id]),
-	?LOG_DEBUG("New child: ~p", [R]),
+	{ok, Pid} = supervisor:start_child(Sup, [Id]),
+	?LOG_DEBUG("New child: ~p ~p", [Id, Pid]),
 	Pid.
 
 %%====================================================================
@@ -47,8 +45,7 @@ init([]) ->
 		]
 	),
 	?LOG_INFO("listening..."),
-	% spawn_link(fun() -> start_childs(ws_config:get(listener_count)) end),
-	X = {
+	{
 		ok,
 		{
 			{simple_one_for_one, 60, 3600},
@@ -63,9 +60,7 @@ init([]) ->
 				}
 			]
 		}
-	},
-%	?LOG_INFO("Sup ~p~n", [X]),
-	X.
+	}.
 
 %%====================================================================
 %% Internal functions
