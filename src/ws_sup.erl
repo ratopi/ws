@@ -9,6 +9,8 @@
 -module(ws_sup).
 -author("Ralf Th. Pietsch <ratopi@abwesend.de>").
 
+-include("ws_logger.hrl").
+
 -behaviour(supervisor).
 
 %% API
@@ -71,8 +73,9 @@ init([]) ->
 		{
 			SupFlags,
 			[
-				{ws_serv_ctrl, {ws_serv_ctrl, start_link, [ChildStarterFun]}, permanent, 2000, worker, [ws_serv_ctrl]},
-				{ws_serv_sup, {ws_serv_sup, start_link, []}, permanent, 2000, supervisor, [ws_serv_sup]}
+				child_def(ws_logger, worker, []),
+				child_def(ws_serv_ctrl, worker, [ChildStarterFun]),
+				child_def(ws_serv_sup, supervisor, [])
 			]
 		}
 	}.
@@ -80,6 +83,10 @@ init([]) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+child_def(Module, Type, Args) ->
+	{Module, {Module, start_link, Args}, permanent, 2000, Type, [Module]}.
+
 
 start_server_child(MyPid, ServerSupervisorId, ServerId) ->
 	{ok, Pid} = get_child_pid(MyPid, ServerSupervisorId),

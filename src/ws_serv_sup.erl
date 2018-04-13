@@ -5,6 +5,8 @@
 
 -module(ws_serv_sup).
 
+-include("ws_logger.hrl").
+
 -behaviour(supervisor).
 
 %% API
@@ -24,10 +26,10 @@ start_link() ->
 	supervisor:start_link(?MODULE, []).
 
 start_a_child(Sup, Id) ->
-	% ws_log:info("start_child()"),
-	% ws_log:info("start_child(~p)", [N]),
+	?LOG_DEBUG("start_child()"),
+	?LOG_DEBUG("start_child(~p)", [Id]),
 	R = {ok, Pid} = supervisor:start_child(Sup, [Id]),
-	% ws_log:info("New child: ~p", [R]),
+	?LOG_DEBUG("New child: ~p", [R]),
 	Pid.
 
 %%====================================================================
@@ -44,7 +46,7 @@ init([]) ->
 			{active, false}
 		]
 	),
-	ws_log:info("listening..."),
+	?LOG_INFO("listening..."),
 	% spawn_link(fun() -> start_childs(ws_config:get(listener_count)) end),
 	X = {
 		ok,
@@ -62,7 +64,7 @@ init([]) ->
 			]
 		}
 	},
-%	ws_log:info("Sup ~p~n", [X]),
+%	?LOG_INFO("Sup ~p~n", [X]),
 	X.
 
 %%====================================================================

@@ -9,6 +9,8 @@
 -module(ws_serv_worker).
 -author("Ralf Th. Pietsch <ratopi@abwesend.de>").
 
+-include("ws_logger.hrl").
+
 -behaviour(gen_server).
 
 %% API
@@ -40,10 +42,10 @@ start_link(ListenSocket, N) ->
 %%%===================================================================
 
 init([ListenSocket, N]) ->
-	% ws_log:info("INIT ~p ~p~n", [ListenSocket, N]),
-	% ws_log:info("cast accept"),
+	?LOG_DEBUG("INIT ~p ~p~n", [ListenSocket, N]),
+	?LOG_DEBUG("cast accept"),
 	gen_server:cast(self(), accept),
-	% ws_log:info("~n~p~n", [#state{}]),
+	?LOG_DEBUG("~n~p~n", [#state{}]),
 	{ok, #state{n = N, listenSocket = ListenSocket}}.
 
 
@@ -52,7 +54,7 @@ handle_call(_Request, _From, State) ->
 
 
 handle_cast(accept, State = #state{n = N, listenSocket = ListenSocket}) ->
-	ws_log:info("~p accepting ...", [N]),
+	?LOG_INFO("~p accepting ...", [N]),
 	{ok, Port} = gen_tcp:accept(ListenSocket),
 	inet:setopts(Port, [{active, once}]),
 	{noreply, State#state{port = Port, phase = start}};
@@ -63,31 +65,31 @@ handle_cast(_Request, State) ->
 
 handle_info({tcp, Port, Data}, State = #state{n = N, phase = start, port = Port}) ->
 	[MethodText, Path, _Protcol] = Parts = re:split(Data, "[ \n\r]", [trim]),
-	% ws_log:info("recv : ~p", [Data]),
-	% ws_log:info("recv : ~p", [Parts]),
+	?LOG_DEBUG("recv : ~p", [Data]),
+	?LOG_DEBUG("recv : ~p", [Parts]),
 	Method = binary_to_atom(MethodText, utf8),
 	NewState = State#state{method = Method, path = Path, phase = header},
-	% ws_log:info("NewState ~p", [NewState]),
+	?LOG_DEBUG("NewState ~p", [NewState]),
 	inet:setopts(Port, [{active, once}]),
 	{noreply, NewState};
 
 handle_info({tcp, Port, "\r\n"}, State = #state{n = N, phase = header, port = Port, path = Path}) ->
 	inet:setopts(Port, [{active, once}]),
-	% ws_log:info("end of header"),
+	?LOG_DEBUG("end of header"),
 	send_data(Port, Path),
 	inet:close(Port),
-	ws_log:info("~p closed", [N]),
+	?LOG_INFO("~p closed", [N]),
 	gen_server:cast(self(), accept),
 	NewState = State#state{phase = accept, port = undefined},
-	% ws_log:info("NewState ~p", [NewState]),
+	?LOG_DEBUG("NewState ~p", [NewState]),
 	{noreply, NewState};
 
 handle_info({tcp, Port, Data}, State = #state{n = N, phase = header, port = Port}) ->
-	% ws_log:info("header : ~p", [re:replace(Data, "\n\r", "")]),
-	% ws_log:info("header : ~p", [string:split(Data, ": ")]),
+	?LOG_DEBUG("header : ~p", [re:replace(Data, "\n\r", "")]),
+	?LOG_DEBUG("header : ~p", [string:split(Data, ": ")]),
 	inet:setopts(Port, [{active, once}]),
 	NewState = State,
-	% ws_log:info("NewState ~p", [NewState]),
+	?LOG_DEBUG("NewState ~p", [NewState]),
 	{noreply, NewState};
 
 handle_info(_Info, State) ->
@@ -106,7 +108,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 send_data(Port, Path) ->
-	ws_log:info("Requested path ~p", [Path]),
+	?LOG_INFO("Requested path ~p", [Path]),
 	inet:send(Port, "Request path was:\r\n"),
 	inet:send(Port, Path),
 	inet:close(Port).

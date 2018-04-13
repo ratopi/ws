@@ -1,20 +1,19 @@
 %%%-------------------------------------------------------------------
 %%% @author Ralf Th. Pietsch <ratopi@abwesend.de>
-%%% @copyright (C) 2018, Ralf Th. Pietsch <ratopi@abwesend.de>
+%%% @copyright (C) 2018, Ralf Th. Pietsch
 %%% @doc
 %%%
 %%% @end
-%%% Created : 11. Apr 2018 22:14
+%%% Created : 13. Apr 2018 13:59
 %%%-------------------------------------------------------------------
--module(ws_serv_ctrl).
+-module(ws_logger).
 -author("Ralf Th. Pietsch <ratopi@abwesend.de>").
-
--include("ws_logger.hrl").
 
 -behaviour(gen_server).
 
 %% API
--export([start_link/1]).
+-export([start_link/0]).
+-export([log/5]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -24,9 +23,9 @@
 	terminate/2,
 	code_change/3]).
 
-% -define(SERVER, ?MODULE).
+-define(SERVER, ?MODULE).
 
--record(state, {child_starter_fun}).
+-record(state, {}).
 
 %%%===================================================================
 %%% API
@@ -38,10 +37,15 @@
 %%
 %% @end
 %%--------------------------------------------------------------------
--spec(start_link(Sup :: pid()) ->
+-spec(start_link() ->
 	{ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
-start_link(ChildStarterFun) ->
-	gen_server:start_link(?MODULE, ChildStarterFun, []).
+start_link() ->
+	gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+
+
+log(Level, Module, Pid, Message, Arguments) ->
+	gen_server:cast(?SERVER, {log, Level, Module, Pid, Message, Arguments}).
+
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -61,10 +65,8 @@ start_link(ChildStarterFun) ->
 -spec(init(Args :: term()) ->
 	{ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
 	{stop, Reason :: term()} | ignore).
-init(ChildStarterFun) ->
-	io:fwrite("ChildStarterFun : ~p~n", [ChildStarterFun]),
-	gen_server:cast(self(), start_childs),
-	{ok, #state{child_starter_fun = ChildStarterFun}}.
+init([]) ->
+	{ok, #state{}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -95,11 +97,17 @@ handle_call(_Request, _From, State) ->
 	{noreply, NewState :: #state{}} |
 	{noreply, NewState :: #state{}, timeout() | hibernate} |
 	{stop, Reason :: term(), NewState :: #state{}}).
-handle_cast(start_childs, State = #state{child_starter_fun = ChildStarterFun}) ->
-	start_childs(ChildStarterFun, ws_config:get(listener_count)),
+
+
+handle_cast({log, Level, Module, Pid, Message, Arguments}, State) ->
+	io:fwrite("~p [~p ~p] ", [Level, Module, Pid]),
+	io:fwrite(Message, Arguments),
+	io:fwrite("~n"),
 	{noreply, State};
 
-handle_cast(_Request, State) ->
+
+handle_cast(Request, State) ->
+	io:fwrite("???? ~p~n", [Request]),
 	{noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -152,13 +160,3 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-
-start_childs(_ChildStarterFun, 0) ->
-	ok;
-
-start_childs(ChildStarterFun, N) ->
-	?LOG_DEBUG("start_child()"),
-	?LOG_DEBUG("start_child(~p)", [N]),
-	C = ChildStarterFun(N),
-	io:fwrite("C ~p~n", [C]),
-	start_childs(ChildStarterFun, N - 1).
