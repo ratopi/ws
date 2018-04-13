@@ -6,7 +6,7 @@
 %%% @end
 %%% Created : 11. Apr 2018 22:11
 %%%-------------------------------------------------------------------
--module(ws_sup).
+-module(ws_serv).
 -author("Ralf Th. Pietsch <ratopi@abwesend.de>").
 
 -include("ws_logger.hrl").
@@ -73,7 +73,6 @@ init([]) ->
 		{
 			SupFlags,
 			[
-				child_def(ws_logger, worker, []),
 				child_def(ws_serv_ctrl, worker, [ChildStarterFun]),
 				child_def(ws_serv_sup, supervisor, [])
 			]
